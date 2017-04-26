@@ -9,22 +9,29 @@ class Field(object):
         self.name = letter+number
         self.shot = False
         self.free = True
+        self.part_of_ship = False
 
     def __str__(self):
-        return self.name
+        if self.part_of_ship:
+            return "x"
+        elif self.shot:
+            return "."
+        else:
+            return " "
+        
 
     def __repr__(self):
         return self.name
 
-    def to_shoot(self, battlefield):
+    def to_shoot(self):
         """Make a shot to this field"""
         self.shot = True
-        battlefield.shot.append(self)
+        #battlefield.shot.append(self)
 
     def involve(self):
         """Make this field involve that means that it is not possible
            to stand there ships"""
-        self.free = False      
+        self.free = False
 
     @property
     def is_free(self):
@@ -33,15 +40,20 @@ class Field(object):
     @property
     def is_shot(self):
         return self.shot
+
+    @property
+    def is_part_of_ship(self):
+        return self.part_of_ship
         
 
 class BattleField(object):
     """A battlefield with ships"""
 
     def __init__(self):
+        from collections import OrderedDict
         self.fields = []
         self.matrix = []
-        self.mapping = {}
+        self.mapping = OrderedDict()
         self.shot = []
                 
         for count, number in enumerate(Field.NUMBERS):
@@ -53,6 +65,33 @@ class BattleField(object):
                 new_field.x = len(self.matrix[count]) - 1
                 self.mapping.update({new_field.name:new_field})
 
+    def get_map(self):
+        self.map = """
+    A   B   C   D   E   F   G   H   I   J
+  +---+---+---+---+---+---+---+---+---+---+
+ 1| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 2| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 3| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 4| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 5| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 6| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 7| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 8| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+ 9| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+10| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
+  +---+---+---+---+---+---+---+---+---+---+
+  """.format(*self.mapping.values())
+        print(self.map)
+    
     def get_halo(self, field):
         range_y = (field.y - 1, field.y, field.y + 1)
         range_x = (field.x - 1, field.x, field.x + 1)
@@ -92,25 +131,55 @@ class BattleField(object):
 
 class Ship(object):
     def __init__(self, ship_fields, battlefield):
-        self.fields = fields
-        self.size = len(fields)
+        self.parts = [battlefield.mapping[field] for field in ship_fields]
+        self.size = len(self.parts)
+        for field in self.parts:
+            field.part_of_ship = True
+        for name in self.parts:
+            halo = battlefield.get_halo(name)
+            for field in halo:
+                field.involve()
+
+    def __str__(self):
+        return str(self.parts)
+            
 
     @classmethod
-    def make_ships(cls):
+    def make_ships(cls, battlefield):
+        ships = []
         ship_length = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
-        
+        for size in ship_length:
+            fields = [field.name for field in battlefield.get_random_fields(size)]
+            ships.append(cls(fields, battlefield))
+        return ships
 
 
 
 
-
-
-
-
-
-
-
-
+"""
+    A   B   C   D   E   F   G   H   I   J
+  +---+---+---+---+---+---+---+---+---+---+
+ 1|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 2|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 3|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 4|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 5|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 6|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 7|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 8|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+ 9|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+10|   |   |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+---+---+
+"""
 
 
 
