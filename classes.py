@@ -65,8 +65,15 @@ class BattleField(object):
                 new_field.x = len(self.matrix[count]) - 1
                 self.mapping.update({new_field.name:new_field})
 
+    def __str__(self):
+        return self.get_map
+
+    def __repr__(self):
+        return self.get_map
+    
+    @property
     def get_map(self):
-        self.map = """
+        drew_map = """
     A   B   C   D   E   F   G   H   I   J
   +---+---+---+---+---+---+---+---+---+---+
  1| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
@@ -90,7 +97,7 @@ class BattleField(object):
 10| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |
   +---+---+---+---+---+---+---+---+---+---+
   """.format(*self.mapping.values())
-        print(self.map)
+        return drew_map
     
     def get_halo(self, field):
         range_y = (field.y - 1, field.y, field.y + 1)
@@ -145,42 +152,55 @@ class Ship(object):
             
 
     @classmethod
-    def make_ships(cls, battlefield):
+    def automake_ships(cls, battlefield):
         ships = []
-        ship_length = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
-        for size in ship_length:
+        SHIP_LENGTH = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
+        for size in SHIP_LENGTH:
             fields = [field.name for field in battlefield.get_random_fields(size)]
             ships.append(cls(fields, battlefield))
         return ships
 
-
-
-
-"""
-    A   B   C   D   E   F   G   H   I   J
-  +---+---+---+---+---+---+---+---+---+---+
- 1|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 2|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 3|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 4|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 5|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 6|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 7|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 8|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
- 9|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
-10|   |   |   |   |   |   |   |   |   |   |
-  +---+---+---+---+---+---+---+---+---+---+
-"""
-
+    @classmethod
+    def make_ship(cls, ship_size, battlefield):
+        import sys
+        while True:
+            try:
+                ship_fields = input("Enter {} locations separated by space:\n".format(ship_size)).upper()
+                print()
+                ship_fields = ship_fields.split(" ")
+                if len(ship_fields) != ship_size:
+                    print("Your ship must consist of {} fields but you typed {}".format(ship_size, len(ship_fields)))
+                    continue
+                parts = [battlefield.mapping[field] for field in ship_fields]
+            except KeyboardInterrupt as key:
+                print("KeyboardInterrupt. System exit!")
+                sys.exit()
+            except:
+                print("Invalid names. Try again")
+                continue
+            is_fields_free = set()
+            ship_letters = ""
+            ship_numbers = ""
+            for part in parts:
+                ship_letters += part.letter
+                ship_numbers += part.number
+                halo = battlefield.get_halo(part)
+                is_fields_free.add(part.is_free)
+##                for element in halo:
+##                    is_fields_free.add(element.is_free)
+            if (ship_numbers not in "12345678910" and ship_letters not in "ABCDEFGHIJ") or\
+               (ship_numbers.count(ship_numbers[0]) != len(ship_numbers)\
+                and ship_letters.count(ship_letters[0]) != len(ship_letters)):
+                print("You ship must be continuous!")
+                continue
+            elif False in is_fields_free:
+                print("You can not use this fields. They are involved. Choose other fields")
+            else:
+                break
+        ship = cls(ship_fields, battlefield)
+        return ship
+                
+            
 
 
         
