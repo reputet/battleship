@@ -1,3 +1,6 @@
+from random import choice
+
+
 class Field(object):
     """A playing field."""
     LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
@@ -7,6 +10,7 @@ class Field(object):
         self.letter = letter
         self.number = number
         self.name = letter+number
+        self.ship = None
         self.shot = False
         self.free = True
         self.part_of_ship = False
@@ -19,13 +23,17 @@ class Field(object):
         else:
             return " "
         
-
     def __repr__(self):
         return self.name
 
     def to_shoot(self):
         """Make a shot to this field"""
+        if self.shot == True:
+            return "already shot"
         self.shot = True
+        if self.part_of_ship:
+            self.ship.live_parts.remove(self)
+            return True
         #battlefield.shot.append(self)
 
     def involve(self):
@@ -44,10 +52,18 @@ class Field(object):
     @property
     def is_part_of_ship(self):
         return self.part_of_ship
+
+class EnemyField(Field):
+    def __str__(self):
+        if self.shot:
+            if self.part_of_ship:
+                return "X"
+            return "."
+        return " "
         
 
 class BattleField(object):
-    """A battlefield with ships"""
+    """A battlefield with fields and ships"""
 
     def __init__(self):
         from collections import OrderedDict
@@ -64,6 +80,7 @@ class BattleField(object):
                 new_field.y = len(self.matrix) - 1
                 new_field.x = len(self.matrix[count]) - 1
                 self.mapping.update({new_field.name:new_field})
+                self.fields.append(new_field)
 
     def __str__(self):
         return self.get_map
@@ -131,31 +148,54 @@ class BattleField(object):
                 
         return ship_fields
 
-            
-
-    #def make_ship(self, ship_fields):
-        
+class EnemyBattleField(BattleField):
+    """Enemy's battlefield with fields and ships"""
+    
+    def __init__(self):
+        from collections import OrderedDict
+        self.fields = []
+        self.matrix = []
+        self.mapping = OrderedDict()
+        self.shot = []
+                
+        for count, number in enumerate(EnemyField.NUMBERS):
+            self.matrix.append(list())
+            for letter in EnemyField.LETTERS:
+                new_field = EnemyField(letter, number)
+                self.matrix[count].append(new_field)
+                new_field.y = len(self.matrix) - 1
+                new_field.x = len(self.matrix[count]) - 1
+                self.mapping.update({new_field.name:new_field})
+                self.fields.append(new_field)
 
 class Ship(object):
+    
+    #SHIP_LENGTH = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
+    SHIP_LENGTH = (1, 1)
+    
     def __init__(self, ship_fields, battlefield):
         self.parts = [battlefield.mapping[field] for field in ship_fields]
         self.size = len(self.parts)
         for field in self.parts:
             field.part_of_ship = True
+            field.ship = self
         for name in self.parts:
             halo = battlefield.get_halo(name)
             for field in halo:
                 field.involve()
+        self.live_parts = list(self.parts)
 
     def __str__(self):
         return str(self.parts)
-            
 
+    @property
+    def is_alive(self):
+        return bool(self.live_parts)
+            
     @classmethod
     def automake_ships(cls, battlefield):
         ships = []
-        SHIP_LENGTH = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
-        for size in SHIP_LENGTH:
+        for size in cls.SHIP_LENGTH:
             fields = [field.name for field in battlefield.get_random_fields(size)]
             ships.append(cls(fields, battlefield))
         return ships
@@ -165,9 +205,13 @@ class Ship(object):
         import sys
         while True:
             try:
-                ship_fields = input("Enter {} locations separated by space:\n".format(ship_size)).upper()
+                if ship_size == 1:
+                    ship_fields = input("Enter cell number for your single-funnel ship:\n".format(ship_size)).upper()
+                else:
+                    ship_fields = input("Enter {0} cell numbers separated by space for your {0}-funnel ship:\n".format(ship_size)).upper()
                 print()
                 ship_fields = ship_fields.split(" ")
+                ship_fields.sort()
                 if len(ship_fields) != ship_size:
                     print("Your ship must consist of {} fields but you typed {}".format(ship_size, len(ship_fields)))
                     continue
@@ -175,7 +219,7 @@ class Ship(object):
             except KeyboardInterrupt as key:
                 print("KeyboardInterrupt. System exit!")
                 sys.exit()
-            except:
+            except KeyError as er:
                 print("Invalid names. Try again")
                 continue
             is_fields_free = set()
@@ -200,11 +244,121 @@ class Ship(object):
         ship = cls(ship_fields, battlefield)
         return ship
                 
-            
+class Player(object):
+    def __init__(self, battlefield):
+        self.battlefield = battlefield
+        self.ships = None
 
+    def make_ships(self):
+        make_ships_automatically = Player.ask_yes_no("Do you want arrange you ships automatically?")
+        if make_ships_automatically == "y":
+            player_ships = Ship.automake_ships(self.battlefield)
+        else:
+            player_ships = []
+            for size in Ship.SHIP_LENGTH:
+                print(self.battlefield.get_map)
+                ship = Ship.make_ship(size, self.battlefield)
+                player_ships.append(ship)
+        self.ships = player_ships
 
+    def shoot_near_drowned_ship(self, battlefield, last_field):
+        halo = set()
+        ship = last_field.ship.parts
+        for field in ship:
+            field_halo = battlefield.get_halo(field)
+            for cell in field_halo:
+                halo.add(cell)
+        for field in halo:
+            field.to_shoot()
+
+    def fire(self, battlefield):
+        shoot = True
+        while shoot:
+            print(battlefield)
+            while True:
+                try:
+                    target = input("Enter a field name to fire: ").upper()
+                    field = battlefield.mapping[target]
+                    break
+                except KeyError as er:
+                    print("Invalid field name. Try again")
+                except KeyboardInterrupt as key:
+                    print("KeyboardInterrupt. System exit!")
+                    sys.exit()
+            shoot = field.to_shoot()
+            if shoot:
+                if shoot == "already shot":
+                    print("You have already shot to that field. Choose another field")
+                elif field.ship.is_alive:
+                    print("Got it!")
+                else:
+                    print("Ship is crushed!")
+                    #field.ship.
+                    self.shoot_near_drowned_ship(battlefield, field)
+                print("Your move again!")
+            else:
+                print("Missed!")
+
+    #def check_victory(self, battlefield):
+        
         
 
+    @staticmethod
+    def ask_yes_no(question):        
+        """Ask a yes or no question."""
+        response = None
+        while response not in ("y", "n"):
+            response = input(question + " [y/n]: ").lower()
+        return response
+        
+class Enemy(Player):
+
+    def make_ships(self):
+        return Ship.automake_ships(self.battlefield)
+
+    def fire(self, battlefield):
+        shoot = True
+        while shoot:
+            input("Enemy's move")
+            field = self.choose_field_to_shoot(battlefield)
+            print("I'll try to shoot to {}".format(field.name))
+            shoot = field.to_shoot()
+            if shoot:
+                if shoot == "already shot":
+                    print("You have already shot to that field. Choose another field")
+                elif field.ship.is_alive:
+                    print("Got it!")
+                else:
+                    print("Ship is crushed!")
+                    self.shoot_near_drowned_ship(battlefield, field)
+                print("Your move again!")
+            else:
+                print("Missed!")
+
+##    def fire(self, battlefield):
+##        shoot = True
+##        while shoot:
+##            input("Enemy's move")
+##            field = self.choose_field_to_shoot(battlefield)
+##            print("I'l try to shoot to {}".format(field.name))
+##            shoot = field.to_shoot()
+##            if shoot:
+##                if shoot == "already shot":
+##                    print("You have already shot to that field. Choose another field")
+##                elif field.ship.is_alive:
+##                    print("Got it!")
+##                else:
+##                    print("Ship is crushed!")
+##                print("Your move again!")
+##            else:
+##                print("Missed!")
+                
+    @staticmethod
+    def choose_field_to_shoot(battlefield):
+        free_fields = list(filter(lambda field: not field.is_shot, battlefield.fields))
+        field = choice(free_fields)
+        return field
+            
 
 
 
