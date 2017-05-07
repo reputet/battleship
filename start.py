@@ -1,9 +1,7 @@
 """Main program"""
 
-from time import sleep
+import textwrap
 from classes import Player, Enemy
-
-SHIP_LENGTH = (4, 3, 3, 2, 2, 2, 1, 1, 1, 1)
 
 
 def ask_yes_no(question):
@@ -14,8 +12,41 @@ def ask_yes_no(question):
     return response
 
 
+def rules_and_agreements():
+    """Print out information for player"""
+    info = """
+    Hello, player!
+
+    It is a well-known game called Battleship or Sea Battle.
+    Before start please read the next rules and agreements:
+
+      -Ships in this game can only be linear
+
+      -Ships can not occupy squares next to each other
+
+      -Player's ship part is designated as "X"
+
+      -Player's damaged ship part is designated as "@"
+
+      -Enemy's founded (damaged) ship part is designated as "X"
+
+      -Missed shots is designated as "."
+
+      -To make a shot you have to write letter followed by number (i.e. "d7")
+
+      -To arrange a ship (if manually ship arrangement was
+       chosen) you have to write its field names separated by space
+       i.e. "a1 a2 a3 a4" (four-funnel) or "h4 h6 h5" (three-funnel) etc.
+
+
+    Enjoy the game!
+    """
+    print(textwrap.dedent(info))
+
+
 def main():
     """Run main program"""
+    rules_and_agreements()
     enemy = Enemy()
     enemy.make_battlefield()
     enemy.make_ships()
@@ -26,9 +57,7 @@ def main():
 
     print(player.battlefield.get_map)
     my_turn = ask_yes_no("Would you like to move first?")
-    if my_turn == "y":
-        my_turn = True
-    else:
+    if my_turn == "n":
         my_turn = False
 
     game_over = None
@@ -36,29 +65,13 @@ def main():
         if my_turn:
             game_over = player.fire(enemy)
             if game_over:
-                print("\n\nCongratulations, human! You destroyed me..."
-                      "I thought it is impossible, but maybe i was wrong...")
-                sleep(10)
-                print("No! I wasn't wrong!")
-                sleep(3)
-                print("It is an accident!")
-                sleep(3)
-                print("You are lucky, human!"
-                      "I'm sure you will never be able to beat me!")
-                sleep(4)
-                print("ha-ha-ha-ha-ha")
-                sleep(3)
-                print("HA-HA-HA-HA-HA-HA-HA-HA")
-                sleep(2)
+                enemy.says_after_losing()
         else:
             game_over = enemy.fire(player)
             if game_over:
-                print("\n\nHa-ha-ha-ha-ha. "
-                      "You'll never be able to surpass machine intellegence!\n"
-                      "Victory for me!")
-                sleep(2)
+                enemy.says_after_victory()
         my_turn = not my_turn
 
 if __name__ == "__main__":
     main()
-    input("\nPress the enter to exit.")
+    input("\nPress Enter to exit.")

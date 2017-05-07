@@ -295,7 +295,8 @@ class Player(object):
     def make_ships(self):
         """Offer to arrange ships automatically or manually"""
         make_ships_automatically = \
-            Player.ask_yes_no("Do you want arrange you ships automatically?")
+            Player.ask_yes_no("Do you want to arrange "
+                              "you ships automatically?")
         if make_ships_automatically == "y":
             player_ships = Ship.automake_ships(self.battlefield)
         else:
@@ -420,3 +421,29 @@ class Enemy(Player):
                                   battlefield.fields))
         field = choice(free_fields)
         return field
+
+    @staticmethod
+    def says_after_losing():
+        """The last words of the enemy after losing to player"""
+        print("\n\nCongratulations, human! You destroyed me..."
+              "I thought it is impossible, but maybe I was wrong...")
+        sleep(10)
+        print("No! i wasn't wrong!")
+        sleep(3)
+        print("It is an accident!")
+        sleep(3)
+        print("You are lucky, human! "
+              "I'm sure you will never be able to beat me again!")
+        sleep(4)
+        print("ha-ha-ha-ha-ha")
+        sleep(3)
+        print("HA-HA-HA-HA-HA-HA-HA-HA-HA-HA")
+        sleep(2)
+
+    @staticmethod
+    def says_after_victory():
+        """The last words of the enemy after the victory over player"""
+        print("\n\nHa-ha-ha-ha-ha. "
+              "You'll never be able to surpass machine intellegence!\n"
+              "Victory for me!")
+        sleep(2)
